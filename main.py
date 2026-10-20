@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from domain.entities.account_type import AccountType
 from domain.entities.transaction_type import TransactionType
@@ -16,6 +17,7 @@ except ImportError:
     raise
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # In-memory databases
 accounts = {}
@@ -51,6 +53,24 @@ class NotificationRequest(BaseModel):
 # Helper logging function
 def log_event(event: str):
     logs.append(event)
+
+# Browser application
+@app.get("/", include_in_schema=False)
+def serve_dashboard():
+    return FileResponse("static/index.html")
+
+# Account overview
+@app.get("/accounts")
+def list_accounts():
+    return [
+        {
+            "account_id": account_id,
+            "type": account["type"],
+            "balance": account["balance"],
+            "account_owner": account["owner_name"],
+        }
+        for account_id, account in accounts.items()
+    ]
 
 # Create Account
 @app.post("/accounts")
